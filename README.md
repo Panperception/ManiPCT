@@ -4,6 +4,7 @@ Implementation of Shape Generation and Completion Through The ‚ÄùMany Manifold‚Ä
 
 ## Requirements:
 Make sure the following environments are installed.
+  
   python==3.9
   pytorch==1.10.2
   torchvision==0.11.3
