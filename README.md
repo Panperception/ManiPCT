@@ -1,3 +1,3 @@
 # 3D Point Cloud Generation With ManiDiff
-![Image text](manidiff/fig1)
+![Image text](manidiff/fig1.png)
 ## Requirements:
