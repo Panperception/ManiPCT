@@ -1,2 +1,2 @@
-# Heading One
-3D Point Cloud Generation With ManiDiff
+# 3D Point Cloud Generation With ManiDiff
+
