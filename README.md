@@ -1,3 +1,3 @@
 # 3D Point Cloud Generation With ManiDiff
-![Image text](manidiff/fig1.png =300x20)
+<img src="manidiff/fig1.png" alt="Image text" width="300" height="200"/>
 ## Requirements:
