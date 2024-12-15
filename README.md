@@ -13,3 +13,9 @@ Make sure the following environments are installed.
     tqdm==4.66.1
     open3d==0.17.0
     scipy==1.10.1
+
+## Training
+
+### Data:
+ShapeNet can be downloaded here.
+Put the downloaded data as ./data/ShapeNetCore.v2.PC15k or edit the pointflow entry in ./datasets/data_path.py for the ShapeNet dataset path.
