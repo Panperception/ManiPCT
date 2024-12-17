@@ -16,6 +16,16 @@ Make sure the following environments are installed.
 
 ## Training
 
+
+### train diffusion prior with clip feat
+this script trains model for single-view-reconstruction or text2shape task
+the idea is that we take the encoder and decoder trained on the data as usual (without conditioning input), and when training the diffusion prior, we feed the clip image embedding as conditioning input: the shape-latent prior model will take the clip embedding through AdaGN layer.
+require the vae checkpoint trained above
+require the rendered ShapeNet data, you can render yourself or download it from here
+put the rendered data as ./data/shapenet_render/ or edit the clip_forge_image entry in ./datasets/data_path.py
+the img data will be read under ./datasets/pointflow_datasets.py with the render_img_path, you may need to cutomize this variable depending of the folder structure
+run bash ./script/train_prior_clip.sh $NGPU
+
 ### Data:
 ShapeNet can be downloaded here.
 Put the downloaded data as ./data/ShapeNetCore.v2.PC15k or edit the pointflow entry in ./datasets/data_path.py for the ShapeNet dataset path.
