@@ -32,4 +32,4 @@ run python ./script/compute_score.py
 
 ## Results:
 Some generation and completion results are as follows.
-<img src="manidiff/result.jpg" alt="Image text" >
+<img src="manidiff/result.jpg" alt="Image text">
