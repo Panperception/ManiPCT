@@ -37,15 +37,15 @@ def l_nearest_neighbor_accuracy(set1, set2, l=1):
 
     return score.item()
 def calculate_emd_nnd(point_cloud1, point_cloud2, k=1):
-    # 建立 KD-Tree
+    
     tree1 = cKDTree(point_cloud1)
     tree2 = cKDTree(point_cloud2)
 
-    # 查询每个点的最近邻点
+    
     _, indices1 = tree1.query(point_cloud2, k=k)
     _, indices2 = tree2.query(point_cloud1, k=k)
 
-    # 计算每个点对的 EMD
+    
     emd_scores = []
     for idx, point in enumerate(point_cloud1):
         nearest_point_in_2 = point_cloud2[indices2[idx]]
@@ -57,13 +57,13 @@ def calculate_emd_nnd(point_cloud1, point_cloud2, k=1):
         emd_score = wasserstein_distance([point][0], [nearest_point_in_1][0])
         emd_scores.append(emd_score)
 
-    # 返回 EMD 的平均值
+    
     average_emd = sum(emd_scores) / len(emd_scores)
     return average_emd
 def load_ply_as_tensor(filepath):
-    pcd = o3d.io.read_point_cloud(filepath)  # 使用open3d读取.ply文件
-    points = np.asarray(pcd.points)  # 获取点云坐标数组
-    tensor = torch.tensor(points, dtype=torch.float32)  # 转换为PyTorch Tensor
+    pcd = o3d.io.read_point_cloud(filepath)  
+    points = np.asarray(pcd.points)  
+    tensor = torch.tensor(points, dtype=torch.float32)  
     return tensor
 if __name__ == '__main__':
     def cd_l_nna(train_loader, ply_filename, n, l):
