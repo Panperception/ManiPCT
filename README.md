@@ -26,7 +26,7 @@ ShapeNet can be downloaded [here](https://shapenet.org/).
 Put the downloaded data as `./data/ShapeNetCore.v2.PC15k` or edit the pointflow entry in `./datasets/data_path.py` for the ShapeNet dataset path.
 
 ### Pretrained models:
-Pretrained models can be downloaded [here]().
+Pretrained models can be downloaded [here](https://github.com/Sun1224xy/ManiDiff/blob/master/denoising_model.pth).
 
 ### Demo:
 run python `demo.py`, will load the model generate a car point cloud. 
