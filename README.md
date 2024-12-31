@@ -29,13 +29,13 @@ Put the downloaded data as `./data/ShapeNetCore.v2.PC15k` or edit the pointflow 
 Pretrained models can be downloaded [here]().
 
 ### Demo:
-run python demo.py, will load the model generate a car point cloud. 
+run python `demo.py`, will load the model generate a car point cloud. 
 
 ### Evaluation:
-download the test data from here, unzip and put it as ./datasets/test_data/
-run python ./script/compute_score.py 
+download the test data from here, unzip and put it as `./datasets/test_data/`
+run python `./script/compute_score.py` 
 
 ## Results:
-Some generation and completion results are as follows.
+Some rendered generation and completion results are as follows.
 
 <img src="manidiff/result.png" alt="Image text" width="600" height="800">
