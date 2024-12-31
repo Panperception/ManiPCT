@@ -23,7 +23,7 @@ We take the encoder and decoder trained on the data as usual (without conditioni
 
 ### Data:
 ShapeNet can be downloaded [here](https://shapenet.org/).
-Put the downloaded data as ./data/ShapeNetCore.v2.PC15k or edit the pointflow entry in ./datasets/data_path.py for the ShapeNet dataset path.
+Put the downloaded data as `./data/ShapeNetCore.v2.PC15k` or edit the pointflow entry in `./datasets/data_path.py` for the ShapeNet dataset path.
 
 ### Pretrained models:
 Pretrained models can be downloaded [here]().
