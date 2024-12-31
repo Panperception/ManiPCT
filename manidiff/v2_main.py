@@ -148,16 +148,22 @@ def earth_mover_distance(p, q):
 
 # Modify your train function to accept optional preloaded model parameters
 def train(num_epochs, pcg_path=None, model_feature_path=None, denoising_model_path=None):
+    """
+    Train the models with optional preloaded model parameters.
+    Args:
+        num_epochs: Number of epochs to train.
+        pcg_path: Path to the pre-saved PointCloudGenerator weights.
+        model_feature_path: Path to the pre-saved PointTransformerSeg weights.
+        denoising_model_path: Path to the pre-saved denoising model weights.
+    """
     cfg = Config()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Initialize models
     diffusion = Diffusion()
     denoising_model = diffusion.model.to(device)
     model_feature = PointTransformerSeg(cfg).to(device)
     pcg = PointCloudGenerator().to(device)
 
-    # If model paths are provided, load the pre-saved weights
     if pcg_path:
         pcg.load_state_dict(torch.load(pcg_path, map_location=device))
     if model_feature_path:
@@ -165,59 +171,35 @@ def train(num_epochs, pcg_path=None, model_feature_path=None, denoising_model_pa
     if denoising_model_path:
         denoising_model.load_state_dict(torch.load(denoising_model_path, map_location=device))
 
-    criterion = nn.MSELoss()
+    criterion = torch.nn.MSELoss()
     params_to_optimize = list(denoising_model.parameters()) + list(model_feature.parameters()) + list(pcg.parameters())
+    optimizer = torch.optim.Adam(params_to_optimize)
 
-    # Initialize the optimizer with all collected parameters
-    optimizer = optim.Adam(params_to_optimize)
     for epoch in range(num_epochs):
         pbar = tqdm(train_loader)
         for i, data in enumerate(pbar):
-            points = data['train_points']
-            points = points.to(device)  # Move data points to the specified device
+            points = data['train_points'].to(device)
             optimizer.zero_grad()
             feature_points = model_feature(points)
             t = diffusion.sample_timesteps(feature_points.size(0)).to(device)
-            # Move the timestep tensor to the specified device
-            # print(t.shape)
             noised_fp, noise = diffusion.q_sample(feature_points, t)
-            # print('noised_fp:', noised_fp.shape)
-            # print('noise:', noise.shape)
             out_noise_fp = pcg(noised_fp, t)
-            # print(points)
-            noised_fp = noised_fp.view(4, 1, 1024)  # Match the input size expected by the model
-            latent_output = denoising_model(noised_fp.to(device))
-            # print('lo:', latent_output.shape)
-            # Ensure the input has been moved to the specified device
-            latent_output = latent_output.view(4, 1024)  # Reformat to match the expected input size of the pcg model
+            noised_fp = noised_fp.view(4, 1, 1024)
+            latent_output = denoising_model(noised_fp)
+            latent_output = latent_output.view(4, 1024)
             output = pcg(latent_output, t)
             x = pcg(feature_points, t)
             loss1 = chamfer_distance1(points, x)
 
-            # if i % 200 == 1:
-            #     xyz = points[1][:, :3].detach().cpu().numpy()
-            #     pcd = o3d.geometry.PointCloud()
-            #     # Set point cloud coordinates
-            #     pcd.points = o3d.utility.Vector3dVector(xyz)
-            #     o3d.visualization.draw_geometries([pcd])
-            #     xyz1 = x[1][:, :3].detach().cpu().numpy()
-            #     pcd = o3d.geometry.PointCloud()
-            #     # Set point cloud coordinates
-            #     pcd.points = o3d.utility.Vector3dVector(xyz1)
-            #     o3d.visualization.draw_geometries([pcd])
-
             out_noise = pcg(noise, t)
             out_points = out_noise_fp - out_noise
-
             loss2 = chamfer_distance1(points, out_points)
 
             loss = criterion(output, out_noise)
-            print('loss1=', loss1.item())
-            print('loss2=', loss2.item())
             total_loss = loss2 + loss1 + loss
             total_loss.backward()
             optimizer.step()
-            print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {total_loss.item()}")
+            pbar.set_description(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {total_loss.item()}")
 
     torch.save(pcg.state_dict(), 'E:\\BaiduNetdiskDownload\\P\\v2_mod\\point_cloud_generator.pth')
     torch.save(model_feature.state_dict(), 'E:\\BaiduNetdiskDownload\\P\\v2_mod\\point_transformer_seg.pth')
