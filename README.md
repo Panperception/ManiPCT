@@ -32,8 +32,8 @@ Pretrained models can be downloaded [here](https://github.com/Sun1224xy/ManiDiff
 run python `demo.py`, will load the model generate a car point cloud. 
 
 ### Evaluation:
-download the test data from here, unzip and put it as `./datasets/test_data/`
-run python `./script/compute_score.py` 
+put test data as `./datasets/test_data/`
+run python `./score.py` 
 
 ## Results:
 Some rendered generation and completion results are as follows.
