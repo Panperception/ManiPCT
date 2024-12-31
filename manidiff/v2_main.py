@@ -67,7 +67,7 @@ class Diffusion:
 
     def sample(self, model, batch_size):
         return self.p_sample_loop(model, (batch_size, 1024))
-# 实例化配置。可以直接传递到模型中。
+# Instantiate configuration. Can be passed directly to the model.
 def chamfer_distance1(p, q):
     """
     Compute Chamfer Distance between two point clouds
@@ -77,20 +77,21 @@ def chamfer_distance1(p, q):
     Returns:
         A scalar tensor with the Chamfer Distance
     """
-    # 计算p和q之间的两两距离,BxNxM
+    # Compute pairwise distances between p and q, BxNxM
     p = p.unsqueeze(2)
     q = q.unsqueeze(1)
     diff = p - q
     dist = torch.sum(diff ** 2, dim=-1)
 
-    # 对于p中的每个点，找到距离q中最近的点，并计算平方距离
+    # For each point in p, find the nearest point in q and compute the squared distance
     dist_pq = torch.min(dist, dim=2)[0]
     dist_qp = torch.min(dist, dim=1)[0]
 
-    # 计算最终的Chamfer Distance
+    # Compute the final Chamfer Distance
     chamfer_dist = torch.mean(dist_pq, dim=1) + torch.mean(dist_qp, dim=1)
 
     return chamfer_dist.mean()
+
 def chamfer_distance(p, q):
     """
     Compute Chamfer Distance between two point clouds for a single sample
@@ -100,35 +101,35 @@ def chamfer_distance(p, q):
     Returns:
         A scalar tensor with the Chamfer Distance
     """
-    # 计算p和q之间的两两距离, NxM
+    # Compute pairwise distances between p and q, NxM
     p = p.unsqueeze(1)  # p is now Nx1x3
     q = q.unsqueeze(0)  # q is now 1xMx3
     diff = p - q  # Broadcasting to compute pairwise distance
     dist = torch.sum(diff ** 2, dim=-1)  # Squared distance, NxM
 
-    # 对于p中的每个点，找到距离q中最近的点，并计算平方距离
-    dist_pq = torch.min(dist, dim=1)[0]  # 最近点距离向量, N
+    # For each point in p, find the nearest point in q and compute the squared distance
+    dist_pq = torch.min(dist, dim=1)[0]  # Nearest point distance vector, N
 
-    # 对于q中的每个点，找到距离p中最近的点，并计算平方距离
-    dist_qp = torch.min(dist, dim=0)[0]  # 最近点距离向量, M
+    # For each point in q, find the nearest point in p and compute the squared distance
+    dist_qp = torch.min(dist, dim=0)[0]  # Nearest point distance vector, M
 
-    # 计算最终的Chamfer Distance
+    # Compute the final Chamfer Distance
     chamfer_dist = dist_pq.mean() + dist_qp.mean()
 
     return chamfer_dist
 
 def earth_mover_distance(p, q):
     """
-    计算两个点云之间的Earth Mover's Distance (EMD)
+    Compute Earth Mover's Distance (EMD) between two point clouds
 
     Args:
-        p: 一个BxNx3的张量，其中B是批量大小，N是点云中的点数
-        q: 一个BxMx3的张量，B是批量大小（在p和q中应该相同），M是点数
+        p: a BxNx3 tensor, where B is batch size, N is number of points in point cloud
+        q: a BxMx3 tensor, B is batch size (should be the same in p, q), and M is number of points
 
     Returns:
-        一个标量张量，含有所有批次的平均EMD
+        A scalar tensor containing the average EMD for all batches
     """
-    # 确保输入是numpy数组以适用于pyemd库
+    # Ensure inputs are numpy arrays to be compatible with pyemd library
     p_np = p.cpu().detach().numpy()
     q_np = q.cpu().detach().numpy()
 
@@ -136,27 +137,27 @@ def earth_mover_distance(p, q):
     emd_sum = 0.0
 
     for i in range(batch_size):
-        # 计算两个点云之间的EMD
+        # Compute EMD between two point clouds
         emd_i = emd_samples(p_np[i], q_np[i])
         emd_sum += emd_i
 
-    # 计算平均EMD
+    # Compute average EMD
     avg_emd = emd_sum / batch_size
 
-
     return avg_emd
-# 修改您的 train 函数，使其接受可选的预加载模型参数
+
+# Modify your train function to accept optional preloaded model parameters
 def train(num_epochs, pcg_path=None, model_feature_path=None, denoising_model_path=None):
     cfg = Config()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # 初始化模型
+    # Initialize models
     diffusion = Diffusion()
     denoising_model = diffusion.model.to(device)
     model_feature = PointTransformerSeg(cfg).to(device)
     pcg = PointCloudGenerator().to(device)
 
-    # 如果提供了模型路径，则加载预先保存的权重
+    # If model paths are provided, load the pre-saved weights
     if pcg_path:
         pcg.load_state_dict(torch.load(pcg_path, map_location=device))
     if model_feature_path:
@@ -167,51 +168,47 @@ def train(num_epochs, pcg_path=None, model_feature_path=None, denoising_model_pa
     criterion = nn.MSELoss()
     params_to_optimize = list(denoising_model.parameters()) + list(model_feature.parameters()) + list(pcg.parameters())
 
-    # 使用所有收集到的参数来初始化优化器
+    # Initialize the optimizer with all collected parameters
     optimizer = optim.Adam(params_to_optimize)
     for epoch in range(num_epochs):
         pbar = tqdm(train_loader)
         for i, data in enumerate(pbar):
             points = data['train_points']
-            points = points.to(device)  # 将数据点移到指定设备
+            points = points.to(device)  # Move data points to the specified device
             optimizer.zero_grad()
             feature_points = model_feature(points)
             t = diffusion.sample_timesteps(feature_points.size(0)).to(device)
-            # 将时间步长张量移到指定的设备
+            # Move the timestep tensor to the specified device
             # print(t.shape)
             noised_fp, noise = diffusion.q_sample(feature_points, t)
-            # print('noise_fp:', noised_fp.shape)
+            # print('noised_fp:', noised_fp.shape)
             # print('noise:', noise.shape)
             out_noise_fp = pcg(noised_fp, t)
             # print(points)
-            noised_fp = noised_fp.view(4, 1, 1024)  # 需要匹配模型期望的输入尺寸
+            noised_fp = noised_fp.view(4, 1, 1024)  # Match the input size expected by the model
             latent_output = denoising_model(noised_fp.to(device))
             # print('lo:', latent_output.shape)
-            # 也可能需要确保输入已经被移到了指定的设备
-            latent_output = latent_output.view(4, 1024)  # 重新格式化以适配pcg模型的期望输入尺寸
+            # Ensure the input has been moved to the specified device
+            latent_output = latent_output.view(4, 1024)  # Reformat to match the expected input size of the pcg model
             output = pcg(latent_output, t)
             x = pcg(feature_points, t)
             loss1 = chamfer_distance1(points, x)
 
-
-
             # if i % 200 == 1:
             #     xyz = points[1][:, :3].detach().cpu().numpy()
             #     pcd = o3d.geometry.PointCloud()
-            #     # 设置点云的坐标
+            #     # Set point cloud coordinates
             #     pcd.points = o3d.utility.Vector3dVector(xyz)
             #     o3d.visualization.draw_geometries([pcd])
             #     xyz1 = x[1][:, :3].detach().cpu().numpy()
             #     pcd = o3d.geometry.PointCloud()
-            #     # 设置点云的坐标
+            #     # Set point cloud coordinates
             #     pcd.points = o3d.utility.Vector3dVector(xyz1)
             #     o3d.visualization.draw_geometries([pcd])
 
             out_noise = pcg(noise, t)
             out_points = out_noise_fp - out_noise
 
-
-            # 计算平均Chamfer距离
             loss2 = chamfer_distance1(points, out_points)
 
             loss = criterion(output, out_noise)
@@ -221,34 +218,16 @@ def train(num_epochs, pcg_path=None, model_feature_path=None, denoising_model_pa
             total_loss.backward()
             optimizer.step()
             print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {total_loss.item()}")
-            # if epoch % 10 == 4:
-            #     if i % 500 == 1:
-            #         xyz = points[1][:, :3].detach().cpu().numpy()
-            #         pcd = o3d.geometry.PointCloud()
-            #         # 设置点云的坐标
-            #         pcd.points = o3d.utility.Vector3dVector(xyz)
-            #         o3d.visualization.draw_geometries([pcd])
-            #         xyz1 = x[1][:, :3].detach().cpu().numpy()
-            #         pcd = o3d.geometry.PointCloud()
-            #         # 设置点云的坐标
-            #         pcd.points = o3d.utility.Vector3dVector(xyz1)
-            #         o3d.visualization.draw_geometries([pcd])
-    torch.save(pcg.state_dict(),
-               'E:\\BaiduNetdiskDownload\\P\\v2_mod\\chair\\2\\point_cloud_generator.pth')
-    torch.save(model_feature.state_dict(),
-               'E:\\BaiduNetdiskDownload\\P\\v2_mod\\chair\\2\\point_transformer_seg.pth')
-    torch.save(denoising_model.state_dict(),
-               'E:\\BaiduNetdiskDownload\\P\\v2_mod\\chair\\2\\denoising_model.pth')
-# 使用原始参数首次训练模型
 
+    torch.save(pcg.state_dict(), 'E:\\BaiduNetdiskDownload\\P\\v2_mod\\point_cloud_generator.pth')
+    torch.save(model_feature.state_dict(), 'E:\\BaiduNetdiskDownload\\P\\v2_mod\\point_transformer_seg.pth')
+    torch.save(denoising_model.state_dict(), 'E:\\BaiduNetdiskDownload\\P\\v2_mod\\denoising_model.pth')
 
-
-
-# 以保存的模型为基础继续训练，提供之前保存的权重的文件路径
+# Train the model for the first time with original parameters
+# Continue training the model based on saved weights, provide the file paths to the previously saved weights
 
 
 if __name__ == '__main__':
     train(2)
-# , pcg_path='E:\\BaiduNetdiskDownload\\P\\v2_mod\\car\\1\\point_cloud_generator.pth', model_feature_path='E:\\BaiduNetdiskDownload\\P\\v2_mod\\car\\1\\point_transformer_seg.pth', denoising_model_path='E:\\BaiduNetdiskDownload\\P\\v2_mod\\car\\1\\denoising_model.pth' )
 
 
