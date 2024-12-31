@@ -17,8 +17,7 @@ class PointCloudGenerator(nn.Module):
         self.bn2 = nn.BatchNorm1d(1024)
         self.bn3 = nn.BatchNorm1d(2048)
 
-        # 为了生成足够的输出点，反卷积层需要适当地配置
-        # 这里我们需要一个生成 num_output_points * output_dim （即 2500*3）数量级别特征的操作
+        
         self.deconv1 = nn.ConvTranspose1d(2048, 1024, kernel_size=1)
         self.deconv2 = nn.ConvTranspose1d(1024, 512, kernel_size=1)
         self.deconv3 = nn.ConvTranspose1d(512, output_dim, kernel_size=num_output_points)
@@ -29,14 +28,14 @@ class PointCloudGenerator(nn.Module):
     def forward(self, x, t):
         batch_size = x.size(0)
 
-        # 与时间嵌入t进行按元素加法
+        
         x = x + t
 
         x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.fc2(x)))
         x = F.relu(self.bn3(self.fc3(x)))
 
-        # 将特征矩阵转换为(batch, channels, samples)的形式进行反卷积操作
+        
         x = x.unsqueeze(2)
 
         x = F.relu(self.bn4(self.deconv1(x)))
@@ -44,16 +43,9 @@ class PointCloudGenerator(nn.Module):
 
         x = self.deconv3(x)
 
-        # 确保最终输出的size为(batch_size, num_output_points, output_dim)
+        # output size(batch_size, num_output_points, output_dim)
         x = x[:, :, :self.num_output_points]
 
         x = x.transpose(2, 1).contiguous()
         x = x.view(batch_size, self.num_output_points, self.output_dim)
         return x
-# model = PointCloudGenerator()
-# input_feature = torch.randn(8, 512)  # 8个样本，每个样本512维特征
-# time_embedding = torch.randn(8, 512)  # 时间嵌入
-#
-# # 获取输出并打印形状
-# output = model(input_feature, time_embedding)
-# print(output.shape)  #
